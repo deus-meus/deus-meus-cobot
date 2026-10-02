@@ -132,8 +132,8 @@ bun install
 # 2. Push database schema
 bunx drizzle-kit push
 
-# 3. Start backing services (Redis, PostgreSQL, Smee relay)
-docker compose up -d cobot-redis cobot-postgres cobot-smee
+# 3. Start backing services for local development
+docker compose -f docker-compose.dev.yml up -d
 
 # 4. Start API server in development mode
 bun dev
@@ -142,12 +142,12 @@ bun dev
 bun worker
 ```
 
-### Full Docker Deployment
+### Production Deployment (Server)
 
-To run all components in production containerized:
+To run the complete production stack on your server using prebuilt GHCR images:
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 ---
