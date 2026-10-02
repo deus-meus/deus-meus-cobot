@@ -5,36 +5,66 @@ services:
     restart: unless-stopped
     ports:
       - "6378:6379"
+    volumes:
+      - cobot_redisdata:/data
 
   cobot-postgres:
     image: postgres:16-alpine
     container_name: cobot-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: deus_meus_cobot
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-deus_meus_cobot}
     ports:
       - "5434:5432"
     volumes:
       - cobot_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-deus_meus_cobot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  cobot-worker:
+  cobot-server:
+    image: ghcr.io/${GH_OWNER:-deus-meus}/deus-meus-cobot:latest
     build: .
-    container_name: cobot-worker
+    container_name: cobot-server
     restart: unless-stopped
+    command: ["bun", "run", "src/index.ts"]
+    ports:
+      - "3000:3000"
+    depends_on:
+      cobot-postgres:
+        condition: service_healthy
+      cobot-redis:
+        condition: service_started
     env_file:
       - .env
     environment:
-      REDIS_HOST: cobot-redis
-      REDIS_PORT: 6379
-      DATABASE_URL: postgres://postgres:postgres@cobot-postgres:5432/deus_meus_cobot
-      ANTHROPIC_BASE_URL: http://host.docker.internal:8317
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - NODE_ENV=production
+      - REDIS_HOST=cobot-redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@cobot-postgres:5432/${DB_NAME:-deus_meus_cobot}
+
+  cobot-worker:
+    image: ghcr.io/${GH_OWNER:-deus-meus}/deus-meus-cobot:latest
+    build: .
+    container_name: cobot-worker
+    restart: unless-stopped
+    command: ["bun", "run", "src/queue/worker.ts"]
     depends_on:
-      - cobot-redis
-      - cobot-postgres
+      cobot-postgres:
+        condition: service_healthy
+      cobot-redis:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=cobot-redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@cobot-postgres:5432/${DB_NAME:-deus_meus_cobot}
 
   cobot-smee:
     image: node:20-alpine
@@ -42,12 +72,13 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      - cobot-server
     command:
       - "sh"
       - "-c"
-      - "if [ -z \"$$SMEE_URL\" ]; then echo 'SMEE_URL is not set in .env. Waiting...'; sleep infinity; else npx --yes smee-client -u \"$$SMEE_URL\" -t http://host.docker.internal:3000/api/v1/webhook; fi"
+      - "if [ -z \"$$SMEE_URL\" ]; then echo 'SMEE_URL is not set in .env. Waiting...'; sleep infinity; else npx --yes smee-client -u \"$$SMEE_URL\" -t http://cobot-server:3000/api/v1/webhook; fi"
 
 volumes:
   cobot_pgdata:
+  cobot_redisdata:

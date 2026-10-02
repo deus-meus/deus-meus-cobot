@@ -13,4 +13,4 @@ RUN bun install --frozen-lockfile
 COPY tsconfig.json drizzle.config.ts biome.json ./
 COPY src ./src
 
-CMD ["bun", "run", "src/queue/worker.ts"]
+CMD ["bun", "run", "src/index.ts"]
