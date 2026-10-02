@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env*.local
+*.pem
+*.key
+
+# Build and cache
+dist/
+build/
+.cache/
+
+# Sandboxes & Temporary Worktrees
+/tmp/cobot-jobs/
+cobot-sandboxes/
+
+# Testing & Coverage
+coverage/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

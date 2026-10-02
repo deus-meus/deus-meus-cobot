@@ -1,0 +1,36 @@
+{
+  "name": "deus-meus-cobot",
+  "version": "0.1.0",
+  "description": "Autonomous AI-powered GitHub Bot inspired by RoboBun",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "worker": "bun --watch src/queue/worker.ts",
+    "test": "bun test",
+    "check": "bun biome check .",
+    "check:apply": "bun biome check --write .",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@hono/zod-validator": "^0.4.3",
+    "@octokit/webhooks": "^13.7.0",
+    "bullmq": "^5.41.0",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.40.0",
+    "hono": "^4.7.2",
+    "ioredis": "^5.6.0",
+    "octokit": "^4.1.2",
+    "postgres": "^3.4.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "latest",
+    "@types/node": "^26.6.3",
+    "drizzle-kit": "^0.30.5"
+  },
+  "trustedDependencies": ["@biomejs/biome"]
+}
