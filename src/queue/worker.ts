@@ -700,6 +700,12 @@ export const webhookWorker = new Worker<WebhookJobData>(
   },
 );
 
+webhookWorker.on("ready", () => {
+  console.log(
+    `[Worker] Deus Meus CoBot queue worker ready and listening on Redis (${env.REDIS_HOST}:${env.REDIS_PORT})`,
+  );
+});
+
 webhookWorker.on("completed", (job) => {
   console.log(`[Worker] Job ${job.id} completed successfully`);
 });
@@ -707,3 +713,5 @@ webhookWorker.on("completed", (job) => {
 webhookWorker.on("failed", (job, err) => {
   console.error(`[Worker] Job ${job?.id} failed with error:`, err.message);
 });
+
+console.log("[Worker] Deus Meus CoBot worker process initialized, waiting for jobs...");
