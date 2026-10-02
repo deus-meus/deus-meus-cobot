@@ -68,19 +68,6 @@ services:
       - REDIS_PORT=6379
       - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@cobot-postgres:5432/${DB_NAME:-deus_meus_cobot}
 
-  cobot-smee:
-    image: node:20-alpine
-    container_name: cobot-smee
-    restart: unless-stopped
-    env_file:
-      - .env
-    depends_on:
-      - cobot-server
-    command:
-      - "sh"
-      - "-c"
-      - "if [ -z \"$$SMEE_URL\" ]; then echo 'SMEE_URL is not set in .env. Waiting...'; sleep infinity; else npx --yes smee-client -u \"$$SMEE_URL\" -t http://cobot-server:3000/api/v1/webhook; fi"
-
 volumes:
   cobot_pgdata:
   cobot_redisdata:
