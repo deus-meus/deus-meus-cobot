@@ -28,7 +28,6 @@ services:
 
   cobot-server:
     image: ghcr.io/${GH_OWNER:-deus-meus}/deus-meus-cobot:latest
-    build: .
     container_name: cobot-server
     restart: unless-stopped
     command: ["bun", "run", "src/index.ts"]
@@ -49,7 +48,6 @@ services:
 
   cobot-worker:
     image: ghcr.io/${GH_OWNER:-deus-meus}/deus-meus-cobot:latest
-    build: .
     container_name: cobot-worker
     restart: unless-stopped
     command: ["bun", "run", "src/queue/worker.ts"]
