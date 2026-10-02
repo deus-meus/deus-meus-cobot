@@ -40,6 +40,8 @@ services:
         condition: service_started
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - NODE_ENV=production
       - REDIS_HOST=cobot-redis
@@ -58,6 +60,8 @@ services:
         condition: service_started
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - NODE_ENV=production
       - REDIS_HOST=cobot-redis
