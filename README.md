@@ -1,48 +1,59 @@
 # Deus Meus CoBot
 
-Autonomous AI GitHub Bot built on Bun, Hono, Octokit (GitHub App), BullMQ, PostgreSQL (Drizzle ORM), and Anthropic Claude API.
+[![Bun](https://img.shields.io/badge/Bun-v1.1+-black?logo=bun)](https://bun.sh)
+[![Hono](https://img.shields.io/badge/Framework-Hono-orange?logo=hono)](https://hono.dev)
+[![TypeScript](https://img.shields.io/badge/Language-TypeScript-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Octokit](https://img.shields.io/badge/GitHub-Octokit%20App-blueviolet?logo=github)](https://github.com/octokit)
+[![BullMQ](https://img.shields.io/badge/Queue-BullMQ-red?logo=redis)](https://bullmq.io)
+[![Drizzle ORM](https://img.shields.io/badge/ORM-Drizzle-green)](https://orm.drizzle.team)
+[![Claude API](https://img.shields.io/badge/AI-Claude%203.7%20%2F%205-purple?logo=anthropic)](https://www.anthropic.com)
+[![Biome](https://img.shields.io/badge/Linter-Biome-yellow)](https://biomejs.dev)
+
+An autonomous AI GitHub Bot built on **Bun**, **Hono**, **Octokit (GitHub App)**, **BullMQ**, **PostgreSQL (Drizzle ORM)**, and **Anthropic Claude API**. Inspired by *RoboBun*, Deus Meus CoBot delivers automated code reviews, autonomous issue solving, interactive Pull Request refinement, and self-healing CI/CD repairs.
 
 ---
 
-## 🌟 Key Features
+## 🏛️ System Architecture
 
-1. **Automated PR Code Reviews**
-   - Automatically analyzes Pull Request diffs upon opening or synchronization.
-   - Evaluates code for OWASP security standards, bugs, and performance regressions.
-   - Can also be triggered explicitly via `@dmc review` in PR comments.
-
-2. **Autonomous Issue Resolution & PR Creation**
-   - Triggers autonomously when an issue is opened or mentioned with `@dmc fix <instructions>`.
-   - Clones repository into an isolated sandbox workspace (`/tmp/cobot-jobs/job-<id>/`).
-   - Uses an autonomous Claude tool loop (`search_files`, `read_file`, `write_file`, `grep_code`, `list_directory`, `run_tests`).
-   - Verifies all fixes with local test runners / linters before committing and opening a Pull Request.
-
-3. **Interactive PR Refinement (`@dmc refine`)**
-   - Collaborate directly with the bot on active Pull Requests.
-   - Mention `@dmc refine <instructions>` or `@dmc fix <instructions>` on a PR discussion thread.
-   - Checks out the existing PR branch, applies modifications, runs verification checks, and pushes a new commit to the same branch without opening duplicate PRs.
-
-4. **CI Failure Auto-Repair (`workflow_run`)**
-   - Listens to GitHub Actions completion events with `conclusion: "failure"`.
-   - Downloads failed job execution logs via Octokit API.
-   - Extracts relevant stack traces, diagnoses the root cause, and applies a verified repair commit to the PR branch or opens an automated repair PR.
-   - Includes anti-loop guardrails to prevent infinite repair cycles.
-
-5. **GitHub App Identity & Verified Commits**
-   - Commits are signed with the configured `GIT_COMMITTER_NAME` (e.g. `Deus Meus CoBot`) and official GitHub App noreply email (`<app-id>+<slug>[bot]@users.noreply.github.com`).
-   - Automatically renders the verified badge and custom GitHub App avatar logo on all git commits.
+```text
+[GitHub Webhook Event]
+       │
+       ▼ (POST /api/v1/webhook)
+[Hono Server] ──(Verify HMAC X-Hub-Signature-256)──> [Return HTTP 202 Accepted (< 100ms)]
+       │
+       ▼ (Enqueue Asynchronous Job)
+[BullMQ Queue (Redis)]
+       │
+       ▼ (Worker Consumer)
+[Agentic Orchestrator] <─── Tool Loop (read, write, search, grep, test) ───> [Anthropic Claude API]
+       │
+       ▼ (Execute Surgical Code Fixes)
+[Isolated Sandbox Workspace] ───> [Local Verification Gate (bun test / biome check)]
+       │ (Pass with 0 errors)
+       ▼
+[Octokit GitHub App] ───> [Push Branch & Open/Refine Pull Request with Official Bot Avatar]
+```
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## 🌟 Key Features & Trigger Commands
 
-- **Runtime**: [Bun](https://bun.sh) (v1.1+)
-- **HTTP Server**: [Hono](https://hono.dev) (Web Standards, lightweight, Bun-native)
-- **GitHub Integration**: Official Octokit Suite (`@octokit/app`, `@octokit/webhooks`, `octokit`)
-- **Queue & Async Processing**: [BullMQ](https://bullmq.io) & [Redis](https://redis.io)
-- **AI SDK**: [`@anthropic-ai/sdk`](https://docs.anthropic.com) (Claude 3.7 Sonnet / Claude 5)
-- **Database & ORM**: PostgreSQL & [Drizzle ORM](https://orm.drizzle.team)
-- **Linter & Formatter**: [Biome](https://biomejs.dev)
+| Command / Event | Trigger Location | Action Performed |
+|---|---|---|
+| `@dmc fix <instructions>` | GitHub Issue or Comment | Clones repository to isolated sandbox, diagnoses root cause, solves issue with Claude tool calling, verifies with tests, and opens a Pull Request. |
+| `@dmc refine <instructions>` | Pull Request Discussion | Checks out the existing PR branch, modifies code according to review feedback, verifies changes, and pushes a new commit to the same branch without opening duplicate PRs. |
+| `@dmc review` | Pull Request Comment | Runs deep automated code review analyzing OWASP security guidelines, potential logic bugs, and performance regressions. |
+| `pull_request.opened` | Webhook Event | Automatically initiates an automated code review on new pull requests. |
+| `workflow_run.completed` (failure) | GitHub Actions CI Event | Ingests failed job console logs, pinpoints error stack traces, and creates an automated repair commit or PR. |
+
+---
+
+## 🏷️ GitHub App Identity & Verified Commits
+
+All git commits authored by the bot automatically link to your official GitHub App profile, rendering the verified badge and custom uploaded logo:
+- **Author/Committer Name**: Configurable via `GIT_COMMITTER_NAME` (default: `Deus Meus CoBot`).
+- **Committer Email**: Uses the official GitHub App noreply email format:  
+  `${GITHUB_APP_ID}+<app-slug>[bot]@users.noreply.github.com`
 
 ---
 
@@ -52,12 +63,31 @@ Autonomous AI GitHub Bot built on Bun, Hono, Octokit (GitHub App), BullMQ, Postg
 
 - [Bun](https://bun.sh) (v1.1 or later)
 - [Docker](https://www.docker.com/) and Docker Compose
-- GitHub App with appropriate permissions (Issues, Pull Requests, Contents, Actions, Webhooks)
+- GitHub App credentials (App ID, Private Key `.pem`, Webhook Secret)
 - Anthropic API Key or compatible API gateway (e.g. CLIProxyAPI)
 
-### Environment Configuration
+### GitHub App Permissions & Events
 
-Copy the example environment file and configure your credentials:
+Configure your GitHub App (*Settings -> Developer Settings -> GitHub Apps*) with the following permissions:
+
+| Permission | Access | Purpose |
+|---|---|---|
+| **Repository Contents** | Read & Write | Clone workspaces, commit fixes, and push branches |
+| **Issues** | Read & Write | Read issue context and post status reports |
+| **Pull Requests** | Read & Write | Read diffs, submit reviews, and create/refine PRs |
+| **Actions / Workflows** | Read | Download failed workflow logs for CI auto-repair |
+
+**Subscribed Webhook Events**:
+- `Issues`
+- `Issue comment`
+- `Pull request`
+- `Workflow run`
+
+---
+
+### Environment Setup
+
+Create your environment configuration:
 
 ```bash
 cp .env.example .env
@@ -65,60 +95,73 @@ cp .env.example .env
 
 Key environment variables:
 
-| Variable | Description |
-|---|---|
-| `PORT` | API server port (default: `3000`) |
-| `GITHUB_APP_ID` | GitHub App ID |
-| `GITHUB_PRIVATE_KEY` | GitHub App private key (`.pem` format or base64) |
-| `GITHUB_WEBHOOK_SECRET` | Secret configured in GitHub App webhook settings |
-| `ANTHROPIC_API_KEY` | Anthropic API key |
-| `ANTHROPIC_BASE_URL` | Optional custom API gateway URL |
-| `REDIS_HOST` | Redis host (default: `localhost`) |
-| `DATABASE_URL` | PostgreSQL connection URL |
-| `GIT_COMMITTER_NAME` | Git author/committer name (default: `Deus Meus CoBot`) |
-| `GIT_COMMITTER_EMAIL` | Optional GitHub App noreply email |
+```ini
+PORT=3000
+NODE_ENV=development
 
-### Installation
+# GitHub App Configuration
+GITHUB_APP_ID=5146647
+GITHUB_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n..."
+GITHUB_WEBHOOK_SECRET=your_webhook_secret
 
-```bash
-# Install dependencies
-bun install
+# Optional Webhook Proxy (Smee.io)
+SMEE_URL=https://smee.io/your-channel-id
 
-# Run database migrations / schema push
-bunx drizzle-kit push
-```
+# Queue & Storage
+REDIS_HOST=localhost
+REDIS_PORT=6379
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/deus_meus_cobot
 
-### Running Locally
+# AI Gateway
+ANTHROPIC_API_KEY=your_anthropic_api_key
+ANTHROPIC_MODEL=claude-3-7-sonnet-20250219
 
-```bash
-# Start background infrastructure (Redis, PostgreSQL, Smee webhook relay)
-docker compose up -d cobot-redis cobot-postgres cobot-smee
-
-# Start API server in watch mode
-bun dev
-
-# Start queue worker in watch mode
-bun worker
-```
-
-### Running via Docker Compose
-
-```bash
-docker compose up -d
+# Git Identity
+GIT_COMMITTER_NAME="Deus Meus CoBot"
+GIT_COMMITTER_EMAIL=5146647+deus-meus-cobot[bot]@users.noreply.github.com
 ```
 
 ---
 
-## 🧪 Testing & Code Quality
+### Installation & Development
+
+```bash
+# 1. Install dependencies
+bun install
+
+# 2. Push database schema
+bunx drizzle-kit push
+
+# 3. Start backing services (Redis, PostgreSQL, Smee relay)
+docker compose up -d cobot-redis cobot-postgres cobot-smee
+
+# 4. Start API server in development mode
+bun dev
+
+# 5. Start background worker
+bun worker
+```
+
+### Full Docker Deployment
+
+To run all components in production containerized:
+
+```bash
+docker compose up -d --build
+```
+
+---
+
+## 🧪 Testing & Code Hygiene
 
 ```bash
 # Run unit tests
 bun test
 
-# Run code formatting & linter checks
+# Run Biome linter & code formatter checks
 bun run check
 
-# Apply automatic linter fixes
+# Apply automatic Biome fixes
 bun run check:apply
 ```
 
@@ -126,4 +169,4 @@ bun run check:apply
 
 ## 📄 License
 
-MIT
+Distributed under the [MIT](LICENSE) License.
